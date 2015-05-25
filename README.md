@@ -8,9 +8,9 @@ They are very similar but I wanted one python script to act as a wrapper.  There
 
 ## Requirements
 
-Unix/Linux/OSX
-Java version 1.7+
-git (optional: For downloading repo)
+* Unix/Linux/OSX
+* Java version 1.7+
+* git (optional: For downloading repo)
 
 ## Installation
 
@@ -25,10 +25,6 @@ cd apkextract
 ```
 ## Tools
 
-[apktool](https://github.com/iBotPeaches/Apktool)
-[dex2jar](https://github.com/pxb1988/dex2jar)
-[jd-cli](https://github.com/kwart/jd-cmd)
-
-## Example
-
-![Imgur](http://i.imgur.com/WwswXLV.gif)
+* [apktool](https://github.com/iBotPeaches/Apktool)
+* [dex2jar](https://github.com/pxb1988/dex2jar)
+* [jd-cli](https://github.com/kwart/jd-cmd)
