@@ -1,13 +1,27 @@
 #!/usr/bin/python
 
-import os # Folder creation, file handling, execution
-import sys # Handling file arguments
-import platform # Detect OS Types for different Java commands
-import subprocess # Detect Java version
-from os.path import join as path_join # For lib folder with dex2jar
+import os  # Folder creation, file handling, execution
+import sys  # Handling file arguments
+import platform  # Detect OS Types for different Java commands
+import subprocess  # Detect Java version
+from os.path import join as path_join  # For lib folder with dex2jar
+
+def javacheck():
+    try:
+        java = subprocess.check_output(["java", "-version"], stderr=subprocess.STDOUT)
+        javaversion = float(java.split('"')[1][0:3])
+
+        if javaversion < 1.7:
+            print "[-] Java version", javaversion, "detected. Please install 1.8 +"
+            sys.exit()
+        else:
+            pass
+    except:
+        print "Unexpected error:", sys.exc_info()[0]
+        pass
 
 def main():
-    javacheck() # Check for Java 1.7+
+    javacheck()  # Check for Java 1.7+
 
     # Check for arguments
     if len(sys.argv) == 1:
@@ -17,13 +31,17 @@ def main():
     # Check for APK file and if found create working folder, otherwise exit
     if os.path.isfile(sys.argv[1]):
         apk = sys.argv[1].strip()
-        outputfolder = "OUTPUT-" + apk[:-4] # Folder created with filename minus extension
+        outputfolder = "OUTPUT-" + apk[:-4]  # Folder created with filename minus extension
+
+        if os.path.exists(outputfolder):
+            print "[*] Detected previous output folder.  Overwriting."
     else:
-        print "File", sys.argv[1], "not found!"
+        print "[*] File", sys.argv[1], "not found!"
         sys.exit(1)
 
     extract = Apk(apk, outputfolder)
     extract.apktool()
+
 
 class Apk(object):
     def __init__(self, apk, dest):
@@ -39,11 +57,12 @@ class Apk(object):
         print "[+] Extracting", self.apk, "to working folder", self.dest
 
         if self.ostype == "darwin":
-            os.system("java -Xmx256M -Djava.awt.headless=true -jar " + apktool + " d -f " + self.apk + " -o " + self.dest +"/apktool")
+            os.system(
+                "java -Xmx256M -Djava.awt.headless=true -jar " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
         elif self.ostype == "Windows":
-            os.system("java -jar -Duser.language=en " + apktool + " d -f " + self.apk + " -o " + self.dest +"/apktool")
+            os.system("java -jar -Duser.language=en " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
         else:
-            os.system("java -Xmx256M -jar " + apktool + " d -f " + self.apk + " -o " + self.dest +"/apktool")
+            os.system("java -Xmx256M -jar " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
 
         self.dex2jar()
 
@@ -76,30 +95,14 @@ class Apk(object):
         try:
             jdfolder = self.dest + "/jdtool"
             jdfmove = self.dest + "/" + self.apk[:-4] + "-dex2jar.jar"
-            print "JDFMOVE:", jdfmove
-
             jdargs = "java -jar " + self.cwfolder + "/tools/jd-cmd-0.9.1/jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
 
-            print "[+] Decompiling ", self.dex2jarfile, "into folder ", jdfolder
+            print "[+] Decompiling ", self.dex2jarfile, "into folder:\n[+] ", jdfolder
             os.makedirs(jdfolder)
             os.system(jdargs)
-            os.rename(self.dex2jarfile, jdfmove) # Move jar file into working folder
+            os.rename(self.dex2jarfile, jdfmove)  # Move jar file into working folder
         except:
             pass
 
-def javacheck():
-    try:
-        java = subprocess.check_output(["java", "-version"], stderr=subprocess.STDOUT)
-        javaversion = float(java.split('"')[1][0:3])
-
-        if javaversion < 1.7:
-            print "[-] Java version", javaversion, "detected. Please install 1.8 +"
-            sys.exit()
-        else:
-            pass
-    except:
-        print "Unexpected error:", sys.exc_info()[0]
-        pass
-
 if __name__ == "__main__":
-	main()
+    main()
