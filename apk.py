@@ -88,56 +88,60 @@ class Apk(object):
         self.cwfolder = cwd
 
     def apktool(self):
-        if self.ostype == "Windows":
-            self.apktool = self.cwfolder + "\\tools\\apktool2.0" + "\\apktool.jar"
-        else:
-            self.apktool = self.cwfolder + "/tools/apktool2.0" + "/apktool.jar"
+        try:
+            if self.ostype == "Windows":
+                self.apktool = self.cwfolder + "\\tools\\apktool2.0" + "\\apktool.jar"
+            else:
+                self.apktool = self.cwfolder + "/tools/apktool2.0" + "/apktool.jar"
 
-        print "[+] Extracting", self.apk, "to working folder", self.dest
+            print "[+] Extracting", self.apk, "to working folder", self.dest
 
-        if self.ostype == "darwin":
-            os.system(
-                "java -Xmx256M -Djava.awt.headless=true -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
-        elif self.ostype == "Windows":
-            os.system("java -jar -Duser.language=en " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "\\apktool")
-        else:
-            os.system("java -Xmx256M -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
+            if self.ostype == "darwin":
+                os.system(
+                    "java -Xmx256M -Djava.awt.headless=true -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
+            elif self.ostype == "Windows":
+                os.system("java -jar -Duser.language=en " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "\\apktool")
+            else:
+                os.system("java -Xmx256M -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
 
-        self.dex2jar()
-
+            self.dex2jar()
+        except Exception,e: print str(e)
+        
     def dex2jar(self):
-        if self.ostype == "Windows":
-            libdir = self.cwfolder + '\\tools\\dex2jar-0.0.9.15'
-            self.dex2jarfile = self.cwfolder + "\\" + self.apk[:-4] + "-dex2jar.jar"
-        else:
-            libdir = self.cwfolder + '/tools/dex2jar-0.0.9.15'
-            self.dex2jarfile = self.cwfolder + "/" + self.apk[:-4] + "-dex2jar.jar"
+        try:
+            if self.ostype == "Windows":
+                libdir = self.cwfolder + '\\tools\\dex2jar-0.0.9.15'
+                self.dex2jarfile = self.cwfolder + "\\" + self.apk[:-4] + "-dex2jar.jar"
+            else:
+                libdir = self.cwfolder + '/tools/dex2jar-0.0.9.15'
+                self.dex2jarfile = self.cwfolder + "/" + self.apk[:-4] + "-dex2jar.jar"
 
-        jars = (
-            'asm-all-3.3.1.jar',
-            'commons-lite-1.15.jar',
-            'dex-ir-1.12.jar',
-            'dex-reader-1.15.jar',
-            'dex-tools-0.0.9.15.jar',
-            'dex-translator-0.0.9.15.jar',
-            'dx.jar',
-            'jar-rename-1.6.jar',
-            'jasmin-p2.5.jar',
-        )
-        classpath = ':'.join([path_join(libdir, x) for x in jars])
-        dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
+            jars = (
+                'asm-all-3.3.1.jar',
+                'commons-lite-1.15.jar',
+                'dex-ir-1.12.jar',
+                'dex-reader-1.15.jar',
+                'dex-tools-0.0.9.15.jar',
+                'dex-translator-0.0.9.15.jar',
+                'dx.jar',
+                'jar-rename-1.6.jar',
+                'jasmin-p2.5.jar',
+            )
+            classpath = ':'.join([path_join(libdir, x) for x in jars])
+            dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
 
-        print "[+] Running dex2jar on", self.apk
-        os.system(dexarg)
+            print "[+] Running dex2jar on", self.apk
+            os.system(dexarg)
 
-        # After running dex2jar we pass over to jd-cli to extract jar file
-        if os.path.isfile(self.dex2jarfile):
-            print "[+] Detected dex2jar file: ", self.dex2jarfile
-            self.jd()
+            # After running dex2jar we pass over to jd-cli to extract jar file
+            if os.path.isfile(self.dex2jarfile):
+                print "[+] Detected dex2jar file: ", self.dex2jarfile
+                self.jd()
+        except Exception,e: print str(e)
 
     def jd(self):
         try:
-            if self.os.type == "Windows":
+            if self.ostype == "Windows":
                 jdfolder = self.dest + "\\jdtool"
                 jdfmove = self.dest + "\\" + self.apk[:-4] + "-dex2jar.jar"
                 jdargs = "java -jar " + self.cwfolder + "\\tools\\jd-cmd-0.9.1\\jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
@@ -150,8 +154,7 @@ class Apk(object):
             os.makedirs(jdfolder)
             os.system(jdargs)
             os.rename(self.dex2jarfile, jdfmove)  # Move jar file into working folder
-        except:
-            pass
+        except Exception,e: print str(e)
 
     def recompile(self):
         if self.ostype == "Windows":
