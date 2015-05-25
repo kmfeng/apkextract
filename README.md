@@ -2,10 +2,6 @@
 
 Inspired by [apk2gold](https://github.com/lxdvs/apk2gold), except with a very unorginal name. This is essentially a wrapper around a few Android apk extraction tools for OSX/Linux.
 
-## Why not use apk2gold?
-
-They are very similar but I wanted one python script to act as a wrapper.  There is nothing wrong with apk2gold, but I want to expand on extraction/recompilation down the road.
-
 ## Requirements
 
 * Unix/Linux/OSX
@@ -20,9 +16,15 @@ cd apkextract
 ```
 
 ## Usage
+Extract APK file
 ```bash
-./apk.py [filename.apk]
+./apk.py -e [filename.apk]
 ```
+Repackage APK file. Repackage will repack the apktool folder in your output directory but uses the filename.apk for the name of the output folder. 
+```bash
+./apk.py -r [filename.apk]
+```
+
 ## Tools
 
 * [apktool](https://github.com/iBotPeaches/Apktool)

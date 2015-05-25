@@ -5,6 +5,7 @@ import sys  # Handling file arguments
 import platform  # Detect OS Types for different Java commands
 import subprocess  # Detect Java version
 from os.path import join as path_join  # For lib folder with dex2jar
+import argparse
 
 def javacheck():
     try:
@@ -12,7 +13,7 @@ def javacheck():
         javaversion = float(java.split('"')[1][0:3])
 
         if javaversion < 1.7:
-            print "[-] Java version", javaversion, "detected. Please install 1.8 +"
+            print "[-] Java version", javaversion, "detected. Please install 1.7 or higher"
             sys.exit()
         else:
             pass
@@ -20,53 +21,98 @@ def javacheck():
         print "Unexpected error:", sys.exc_info()[0]
         pass
 
-def main():
-    javacheck()  # Check for Java 1.7+
-
-    # Check for arguments
-    if len(sys.argv) == 1:
-        print "Usage:", sys.argv[0], "[filename.apk]"
+def filecheck(apk):
+    if os.path.isfile(apk):
+        print "[+] File", apk, "found!"
+        pass
+    else:
+        print "[*] File", apk, "not found!"
         sys.exit(1)
 
-    # Check for APK file and if found create working folder, otherwise exit
-    if os.path.isfile(sys.argv[1]):
-        apk = sys.argv[1].strip()
-        outputfolder = "OUTPUT-" + apk[:-4]  # Folder created with filename minus extension
+def foldercheck(apk, ostype, cwd):
+    if ostype == "Windows":
+        outputfolder = cwd + "\\OUTPUT-" + apk[:-4] +  "\\apktool"
+    else:
+        outputfolder = cwd + "/OUTPUT-" + apk[:-4]  + "/apktool"
 
+    if os.path.exists(outputfolder):
+        print "[+] Detected previous apktool output folder.  Recompiling apk."
+    else:
+        print "[*] No previous extracted APK folder found. Please extract APK first."
+        sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='APKextract is a python wrapper for Android APK extraction tools')
+    parser.add_argument(
+        '-e', '--extract', type=str, help='Extract apk file', dest="extract")
+    parser.add_argument(
+        '-r', '--recompile', type=str, help='Recompile apk', dest="recompile")
+    parser.add_argument(
+        '-s', '--sign', type=str, help='Sign APK file', dest="sign")
+
+    args = parser.parse_args()
+
+    javacheck()  # Check for Java 1.7+
+    ostype = platform.system() # Check for OS type
+    cwd = os.getcwd() # Get current working folder
+
+    if args.extract:
+        apk = args.extract.strip()
+        filecheck(apk)
+        outputfolder = "OUTPUT-" + apk[:-4]
         if os.path.exists(outputfolder):
             print "[*] Detected previous output folder.  Overwriting."
-    else:
-        print "[*] File", sys.argv[1], "not found!"
-        sys.exit(1)
 
-    extract = Apk(apk, outputfolder)
-    extract.apktool()
+        apk = Apk(apk, outputfolder, ostype, cwd)
+        apk.apktool()
 
+    if args.recompile:
+        apk = args.recompile.strip()
+        foldercheck(apk, ostype, cwd)
+        outputfolder = "OUTPUT-" + apk[:-4]
+
+        apk = Apk(apk, outputfolder, ostype, cwd)
+        apk.recompile()
+
+    if args.sign:
+        print "Not yet implemented"
+        pass
 
 class Apk(object):
-    def __init__(self, apk, dest):
+    def __init__(self, apk, dest, ostype, cwd):
 
         self.apk = apk
         self.dest = dest
-        self.cwfolder = os.path.dirname(os.path.abspath(__file__))
-        self.ostype = platform.system()
+        self.ostype = ostype
+        self.cwfolder = cwd
 
     def apktool(self):
-        apktool = self.cwfolder + '/tools/apktool2.0' + "/apktool.jar"
+        if self.ostype == "Windows":
+            self.apktool = self.cwfolder + "\\tools\\apktool2.0" + "\\apktool.jar"
+        else:
+            self.apktool = self.cwfolder + "/tools/apktool2.0" + "/apktool.jar"
 
         print "[+] Extracting", self.apk, "to working folder", self.dest
 
         if self.ostype == "darwin":
             os.system(
-                "java -Xmx256M -Djava.awt.headless=true -jar " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
+                "java -Xmx256M -Djava.awt.headless=true -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
         elif self.ostype == "Windows":
-            os.system("java -jar -Duser.language=en " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
+            os.system("java -jar -Duser.language=en " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "\\apktool")
         else:
-            os.system("java -Xmx256M -jar " + apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
+            os.system("java -Xmx256M -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
 
         self.dex2jar()
 
     def dex2jar(self):
+        if self.ostype == "Windows":
+            libdir = self.cwfolder + '\\tools\\dex2jar-0.0.9.15'
+            self.dex2jarfile = self.cwfolder + "\\" + self.apk[:-4] + "-dex2jar.jar"
+        else:
+            libdir = self.cwfolder + '/tools/dex2jar-0.0.9.15'
+            self.dex2jarfile = self.cwfolder + "/" + self.apk[:-4] + "-dex2jar.jar"
+
         jars = (
             'asm-all-3.3.1.jar',
             'commons-lite-1.15.jar',
@@ -78,7 +124,6 @@ class Apk(object):
             'jar-rename-1.6.jar',
             'jasmin-p2.5.jar',
         )
-        libdir = self.cwfolder + '/tools/dex2jar-0.0.9.15'
         classpath = ':'.join([path_join(libdir, x) for x in jars])
         dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
 
@@ -86,23 +131,41 @@ class Apk(object):
         os.system(dexarg)
 
         # After running dex2jar we pass over to jd-cli to extract jar file
-        self.dex2jarfile = self.cwfolder + "/" + self.apk[:-4] + "-dex2jar.jar"
         if os.path.isfile(self.dex2jarfile):
             print "[+] Detected dex2jar file: ", self.dex2jarfile
             self.jd()
 
     def jd(self):
         try:
-            jdfolder = self.dest + "/jdtool"
-            jdfmove = self.dest + "/" + self.apk[:-4] + "-dex2jar.jar"
-            jdargs = "java -jar " + self.cwfolder + "/tools/jd-cmd-0.9.1/jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
+            if self.os.type == "Windows":
+                jdfolder = self.dest + "\\jdtool"
+                jdfmove = self.dest + "\\" + self.apk[:-4] + "-dex2jar.jar"
+                jdargs = "java -jar " + self.cwfolder + "\\tools\\jd-cmd-0.9.1\\jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
+            else:
+                jdfolder = self.dest + "/jdtool"
+                jdfmove = self.dest + "/" + self.apk[:-4] + "-dex2jar.jar"
+                jdargs = "java -jar " + self.cwfolder + "/tools/jd-cmd-0.9.1/jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
 
-            print "[+] Decompiling ", self.dex2jarfile, "into folder:\n[+] ", jdfolder
+            print "[+] Decompiling: ", self.dex2jarfile, "\n[+] Output decompile:", jdfolder
             os.makedirs(jdfolder)
             os.system(jdargs)
             os.rename(self.dex2jarfile, jdfmove)  # Move jar file into working folder
         except:
             pass
+
+    def recompile(self):
+        if self.ostype == "Windows":
+            self.apktool = self.cwfolder + "\\tools\\apktool2.0" + "\\apktool.jar"
+        else:
+            self.apktool = self.cwfolder + "/tools/apktool2.0" + "/apktool.jar"
+
+        if self.ostype == "darwin":
+            os.system(
+                "java -Xmx256M -Djava.awt.headless=true -jar " + self.apktool + " b " + self.dest + "/apktool")
+        elif self.ostype == "Windows":
+            os.system("java -jar -Duser.language=en " + self.apktool + " b " + self.dest + "\\apktool")
+        else:
+            os.system("java -Xmx256M -jar " + self.apktool + " b " + self.dest + "/apktool")
 
 if __name__ == "__main__":
     main()
