@@ -136,8 +136,14 @@ class Apk(object):
                 'jar-rename-1.6.jar',
                 'jasmin-p2.5.jar',
             )
-            classpath = ':'.join([path_join(libdir, x) for x in jars])
-            dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
+
+            if self.ostype == "Windows":
+                classpath = ';'.join([path_join(libdir, x) for x in jars])
+                dexarg = "java -Xms512m -Xmx1024m -cp " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
+            else:
+                classpath = ':'.join([path_join(libdir, x) for x in jars])
+                dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
+
 
             print "[+] Running dex2jar on", self.apk
             os.system(dexarg)
