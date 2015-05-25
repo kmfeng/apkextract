@@ -89,6 +89,15 @@ class Apk(object):
 
     def apktool(self):
         try:
+            filename = self.dest + "_certificate.txt"
+            certificate = subprocess.check_output(["keytool", "-list", "-printcert", "-jarfile", self.apk], stderr=subprocess.STDOUT)
+            f = open(filename,"w")
+            f.write(certificate)
+            f.close()
+        except:
+            pass
+
+        try:
             if self.ostype == "Windows":
                 self.apktool = self.cwfolder + "\\tools\\apktool2.0" + "\\apktool.jar"
             else:
@@ -106,7 +115,7 @@ class Apk(object):
 
             self.dex2jar()
         except Exception,e: print str(e)
-        
+
     def dex2jar(self):
         try:
             if self.ostype == "Windows":
