@@ -20,9 +20,13 @@ Extract APK file
 ```bash
 ./apk.py -e [filename.apk]
 ```
-Repackage APK file
+Extract APK file to specified output folder
 ```bash
-./apk.py -r [filename.apk]
+./apk.py -e [filename.apk] -o flappybirdrocks
+```
+Repackage APK from a working directory
+```bash
+./apk.py -r flapplybirdrocks
 ```
 
 ## Notes
