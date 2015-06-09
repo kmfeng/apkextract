@@ -1,0 +1,3 @@
+[submodule "tools/enjarify"]
+	path = tools/enjarify
+	url = https://github.com/google/enjarify.git
