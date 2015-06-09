@@ -22,16 +22,18 @@ def javacheck():
 		pass
 
 def filecheck(apk):
-	filename, dotapk = os.path.splitext(apk)
-
-	if os.path.isfile(apk):
-		print(("[+] File", apk, "found!"))
-		pass
-	elif dotapk != ".apk":
-		print(("[*] File", apk, "must have an apk file extension"))
-		sys.exit(1)
-	else:
-		print(("[*] File", apk, "not found!"))
+	try:
+		filename, dotapk = os.path.splitext(apk)
+		if os.path.isfile(apk):
+			print(("[+] File", apk, "found!"))
+			pass
+		elif dotapk != ".apk":
+			print(("[*] File", apk, "must have an apk file extension"))
+			sys.exit(1)
+		else:
+			print(("[*] File", apk, "not found!"))
+			sys.exit(1)
+	except:
 		sys.exit(1)
 
 def foldercheck(recompfolder, ostype, cwd):
@@ -48,6 +50,10 @@ def foldercheck(recompfolder, ostype, cwd):
 		sys.exit(1)
 
 def main():
+	if len(sys.argv) == 1:
+		print ("No arguments supplied. Type -h or --help")
+		sys.exit(1)
+
 	parser = argparse.ArgumentParser(
 		description='APKextract is a python wrapper for Android APK extraction tools')
 	parser.add_argument(
@@ -94,10 +100,23 @@ def main():
 		print("Not yet implemented")
 		pass
 
+class cd:
+    """Context manager for changing the current working directory"""
+    def __init__(self, newPath):
+        self.newPath = os.path.expanduser(newPath)
+
+    def __enter__(self):
+        self.savedPath = os.getcwd()
+        os.chdir(self.newPath)
+
+    def __exit__(self, etype, value, traceback):
+        os.chdir(self.savedPath)
+
 class Apk(object):
 	def __init__(self, apk, dest, ostype, cwd):
 
-		self.apk = apk
+		self.absapk = os.path.abspath(apk) # Absolute path to apk
+		self.apk = apk # Apk file name
 		self.dest = dest
 		self.ostype = ostype
 		self.cwfolder = cwd
@@ -119,7 +138,7 @@ class Apk(object):
 			else:
 				os.system("java -Xmx256M -jar " + self.apktool + " d -f " + self.apk + " -o " + self.dest + "/apktool")
 
-			self.dex2jar()
+			self.enjarify()
 		except Exception as e: print((str(e)))
 
 		try:
@@ -135,41 +154,26 @@ class Apk(object):
 		except:
 			pass
 
-	def dex2jar(self):
+	def enjarify(self):
 		try:
 			if self.ostype == "Windows":
-				libdir = self.cwfolder + '\\tools\\dex2jar-0.0.9.15'
-				self.dex2jarfile = self.cwfolder + "\\" + self.apk[:-4] + "-dex2jar.jar"
+				with cd("tools\\enjarify"):
+					self.enjarifytool = self.cwfolder + "\\tools\\enjarify\\enjarify" + "\\enjarify.bat"
+					self.enjararfile = self.cwfolder + "\\" + self.apk[:-4] + "-enjar.jar"
+					print(("[+] Running Enjarify on", self.absapk))
+					os.system(enjarifyrun)
 			else:
-				libdir = self.cwfolder + '/tools/dex2jar-0.0.9.15'
-				self.dex2jarfile = self.cwfolder + "/" + self.apk[:-4] + "-dex2jar.jar"
+				with cd("tools/enjarify"):
+					self.enjarifytool = self.cwfolder + "/tools/enjarify" + "/enjarify.sh"
+					self.enjararfile = self.cwfolder + "/" + self.apk[:-4] + "-enjar.jar"
+					enjarifyrun = self.enjarifytool + " " + self.absapk + " -o " + self.enjararfile
+					print(("DEBUG", enjarifyrun))
+					print(("[+] Running Enjarify on", self.absapk))
+					os.system(enjarifyrun)
 
-			jars = (
-				'asm-all-3.3.1.jar',
-				'commons-lite-1.15.jar',
-				'dex-ir-1.12.jar',
-				'dex-reader-1.15.jar',
-				'dex-tools-0.0.9.15.jar',
-				'dex-translator-0.0.9.15.jar',
-				'dx.jar',
-				'jar-rename-1.6.jar',
-				'jasmin-p2.5.jar',
-			)
-
-			if self.ostype == "Windows":
-				classpath = ';'.join([path_join(libdir, x) for x in jars])
-				dexarg = "java -Xms512m -Xmx1024m -cp " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
-			else:
-				classpath = ':'.join([path_join(libdir, x) for x in jars])
-				dexarg = "java -Xms512m -Xmx1024m -classpath " + classpath + " com.googlecode.dex2jar.tools.Dex2jarCmd " + self.apk
-
-
-			print(("[+] Running dex2jar on", self.apk))
-			os.system(dexarg)
-
-			# After running dex2jar we pass over to jd-cli to extract jar file
-			if os.path.isfile(self.dex2jarfile):
-				print(("[+] Detected dex2jar file: ", self.dex2jarfile))
+			# After running we pass over to jd-cli to extract jar file
+			if os.path.isfile(self.enjararfile):
+				print(("[+] Detected jar file: ", self.enjararfile))
 				self.jd()
 		except Exception as e: print((str(e)))
 
@@ -177,17 +181,18 @@ class Apk(object):
 		try:
 			if self.ostype == "Windows":
 				jdfolder = self.dest + "\\jdtool"
-				jdfmove = self.dest + "\\" + self.apk[:-4] + "-dex2jar.jar"
-				jdargs = "java -jar " + self.cwfolder + "\\tools\\jd-cmd-0.9.1\\jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
+				jdfmove = self.dest + "\\" + self.apk[:-4] + "-enjar.jar"
+				jdargs = "java -jar " + self.cwfolder + "\\tools\\jd-cmd-0.9.1\\jd-cli.jar " + self.enjararfile + " -od " + jdfolder
 			else:
 				jdfolder = self.dest + "/jdtool"
-				jdfmove = self.dest + "/" + self.apk[:-4] + "-dex2jar.jar"
-				jdargs = "java -jar " + self.cwfolder + "/tools/jd-cmd-0.9.1/jd-cli.jar " + self.dex2jarfile + " -od " + jdfolder
+				jdfmove = self.dest + "/" + self.apk[:-4] + "-enjar.jar"
+				jdargs = "java -jar " + self.cwfolder + "/tools/jd-cmd-0.9.1/jd-cli.jar " + self.enjararfile + " -od " + jdfolder
 
-			print(("[+] Decompiling: ", self.dex2jarfile, "\n[+] Output decompile:", jdfolder))
+			print(("[+] Decompiling: ", self.enjararfile, "\n[+] Output decompile:", jdfolder))
 			os.makedirs(jdfolder)
 			os.system(jdargs)
-			os.rename(self.dex2jarfile, jdfmove)  # Move jar file into working folder
+			os.rename(self.enjararfile, jdfmove)  # Move jar file into working folder
+
 		except Exception as e: print((str(e)))
 
 	def recompile(self):
