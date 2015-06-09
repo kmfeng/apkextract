@@ -4,7 +4,6 @@ import os  # Folder creation, file handling, execution
 import sys  # Handling file arguments
 import platform  # Detect OS Types for different Java commands
 import subprocess  # Detect Java version
-from os.path import join as path_join  # For lib folder with dex2jar
 import argparse
 
 def javacheck():
@@ -166,7 +165,7 @@ class Apk(object):
 				with cd("tools/enjarify"):
 					self.enjarifytool = self.cwfolder + "/tools/enjarify" + "/enjarify.sh"
 					self.enjararfile = self.cwfolder + "/" + self.apk[:-4] + "-enjar.jar"
-					enjarifyrun = self.enjarifytool + " " + self.absapk + " -o " + self.enjararfile
+					enjarifyrun = self.enjarifytool + " " + self.absapk + " -o " + self.enjararfile + " --force"
 					print(("DEBUG", enjarifyrun))
 					print(("[+] Running Enjarify on", self.absapk))
 					os.system(enjarifyrun)
